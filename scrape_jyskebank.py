@@ -13,6 +13,8 @@ import requests
 import time
 from datetime import datetime
 
+import cloudscraper
+
 
 scrape_url = "https://www.jyskebank.dk/erhverv/ejendomsfinansiering/kurser"
 sleep_duration = 60*60  # 1 hour.
@@ -24,13 +26,17 @@ output_folder = "data/jyskebank_erhverv_kurser/scrape_raw"
 
 def main():
     """ """
-    Path(output_folder).mkdir(exist_ok=True, parents=True)
-    res = requests.get(scrape_url, headers={"User-Agent": user_agents})
-    txt = res.text
-    fname = f"{datetime.now():%Y%m%d-%H%M%S}_{res.status_code}.html"
-    fpath = Path(output_folder) / fname
-    print(f"Writing {len(txt)} chars to file: {fpath}")
-    Path(fpath).write_text(txt)
+
+    while True:
+        Path(output_folder).mkdir(exist_ok=True, parents=True)
+        scraper = cloudscraper.create_scraper()
+        res = scraper.get(scrape_url, headers={"User-Agent": user_agents})
+        txt = res.text
+        fname = f"{datetime.now():%Y%m%d-%H%M%S}_{res.status_code}.html"
+        fpath = Path(output_folder) / fname
+        print(f"Writing {len(txt)} chars to file: {fpath}")
+        Path(fpath).write_text(txt)
+        time.sleep(sleep_duration)
 
 
 if __name__ == "__main__":
