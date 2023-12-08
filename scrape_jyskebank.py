@@ -9,7 +9,6 @@ Use one of these packages:
 
 """
 from pathlib import Path
-import requests
 import time
 import random
 from datetime import datetime
@@ -21,7 +20,7 @@ scrape_url = "https://www.jyskebank.dk/erhverv/ejendomsfinansiering/kurser"
 sleep_duration = 60*60  # 1 hour.
 sleep_random_extra_max = 40*60
 
-user_agents = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 output_folder = "data/jyskebank_erhverv_kurser/scrape_raw"
 
@@ -29,10 +28,10 @@ output_folder = "data/jyskebank_erhverv_kurser/scrape_raw"
 def main():
     """ """
 
+    Path(output_folder).mkdir(exist_ok=True, parents=True)
+    scraper = cloudscraper.create_scraper()
     while True:
-        Path(output_folder).mkdir(exist_ok=True, parents=True)
-        scraper = cloudscraper.create_scraper()
-        res = scraper.get(scrape_url, headers={"User-Agent": user_agents})
+        res = scraper.get(scrape_url, headers={"User-Agent": user_agent})
         txt = res.text
         fname = f"{datetime.now():%Y%m%d-%H%M%S}_{res.status_code}.html"
         fpath = Path(output_folder) / fname
