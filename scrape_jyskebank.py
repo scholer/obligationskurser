@@ -11,6 +11,7 @@ Use one of these packages:
 from pathlib import Path
 import requests
 import time
+import random
 from datetime import datetime
 
 import cloudscraper
@@ -18,6 +19,7 @@ import cloudscraper
 
 scrape_url = "https://www.jyskebank.dk/erhverv/ejendomsfinansiering/kurser"
 sleep_duration = 60*60  # 1 hour.
+sleep_random_extra_max = 40*60
 
 user_agents = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
@@ -36,7 +38,11 @@ def main():
         fpath = Path(output_folder) / fname
         print(f"Writing {len(txt)} chars to file: {fpath}")
         Path(fpath).write_text(txt)
-        time.sleep(sleep_duration)
+        try:
+            time.sleep(sleep_duration + random.randint(0, sleep_random_extra_max))
+        except KeyboardInterrupt:
+            print("Exiting...")
+            return
 
 
 if __name__ == "__main__":
