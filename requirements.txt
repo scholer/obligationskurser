@@ -1,0 +1,7 @@
+cloudscraper
+beautifulsoup4
+lxml
+# OBS: If using pandas >2.1, then make sure to use pyarrow >12, otherwise you will get a "FutureWarning" from pandas.
+pandas
+pyarrow
+matplotlib
