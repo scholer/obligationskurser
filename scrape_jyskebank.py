@@ -45,7 +45,7 @@ user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 minute = 60
 hour = 60 * minute
 day = 24 * hour
-sleep_duration_base = hour//2
+sleep_duration_base = hour//4
 sleep_random_extra_max = 1*hour
 sleep_weekend_extra_min = 4*hour
 sleep_weekend_extra_max = 12*hour
@@ -56,31 +56,35 @@ sleep_offhour_extra_max = 6*hour
 def main():
     """ """
     Path(output_folder).mkdir(exist_ok=True, parents=True)
-    scraper = cloudscraper.create_scraper()
     while True:
-        res = scraper.get(scrape_url, headers={"User-Agent": user_agent})
-        txt = res.text
-        fname = f"{datetime.now():%Y%m%d-%H%M%S}_{res.status_code}.html"
-        fpath = Path(output_folder) / fname
-        print(f"Writing {len(txt)} chars to file: {fpath}")
-        Path(fpath).write_text(txt)
-
-        # time.sleep is paused during hybernation.
-        # Instead, calcualte the datetime of the next acquisition, and then keep sleeping in smaller loops until then.
-        loop_sleep_duration = sleep_duration_base + random.randint(0, sleep_random_extra_max)
-        # Add additional sleep time over the weekend and during off-hours (after 4pm).
-        if 4 < datetime.now().weekday():
-            loop_sleep_duration += random.randint(sleep_weekend_extra_min, sleep_weekend_extra_max)
-        if 16 < datetime.now().hour:
-            loop_sleep_duration += random.randint(sleep_offhour_extra_min, sleep_offhour_extra_max)
-        next_acq_time = datetime.now() + timedelta(seconds=loop_sleep_duration)
-        print(f" - sleeping for {loop_sleep_duration/hour:.01f} hours until {next_acq_time:%H:%M:%S}...")
         try:
+            # Create new scraper session on each loop to avoid 'Connection aborted' RemoteDisconnected errors.
+            scraper = cloudscraper.create_scraper()
+            res = scraper.get(scrape_url, headers={"User-Agent": user_agent})
+            txt = res.text
+            fname = f"{datetime.now():%Y%m%d-%H%M%S}_{res.status_code}.html"
+            fpath = Path(output_folder) / fname
+            print(f"Writing {len(txt)} chars to file: {fpath}")
+            Path(fpath).write_text(txt)
+
+            # time.sleep is paused during hybernation.
+            # Instead, calcualte the datetime of the next acquisition, and then keep sleeping in smaller loops until then.
+            loop_sleep_duration = sleep_duration_base + random.randint(0, sleep_random_extra_max)
+            # Add additional sleep time over the weekend and during off-hours (after 4pm).
+            if 4 < datetime.now().weekday():
+                loop_sleep_duration += random.randint(sleep_weekend_extra_min, sleep_weekend_extra_max)
+            if 16 < datetime.now().hour:
+                loop_sleep_duration += random.randint(sleep_offhour_extra_min, sleep_offhour_extra_max)
+            next_acq_time = datetime.now() + timedelta(seconds=loop_sleep_duration)
+            print(f" - sleeping for {loop_sleep_duration/hour:.01f} hours until {next_acq_time:%H:%M:%S}...")
             while datetime.now() < next_acq_time:
                 time.sleep(61)
         except KeyboardInterrupt:
             print("Exiting...")
             return
+        except Exception as exc:
+            print("Exception:", exc)
+            print("Looping...")
 
 
 if __name__ == "__main__":

@@ -5,4 +5,6 @@ lxml
 pandas
 pyarrow
 matplotlib
+# Note: Seaborn version 0.12.2 produces a bunch of FutureWarnings. Consider installing 0.13 from pypi.
+# Sigh. Conda has so many bugs right now, I can't uninstall seaborn and I can't update conda. 😂
 seaborn
