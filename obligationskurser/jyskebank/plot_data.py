@@ -1,4 +1,13 @@
+"""
+Plot output from extract_table_data_from_raw_html.py
 
+Usage:
+
+$ python obligationskurser/jyskebank/plot_data.py
+
+
+
+"""
 from datetime import datetime
 from pathlib import Path
 
@@ -13,13 +22,19 @@ def get_parquet_dfs(parquet_basedir):
     print(f"{len(dfs)} parquet files.")
 
 
-def get_combined_df(parquet_basedir):
+def get_combined_df(
+    parquet_basedir,
+    fpattern: str = "*.parquet",
+):
     # dfs = [pd.read_parquet(fpath) for fpath in Path(parquet_basedir).glob("*.parquet")]
     # We also need timestamp from filename...
-    parquet_files = Path(parquet_basedir).glob("*.parquet")
+    parquet_files = Path(parquet_basedir).glob(fpattern)
     dfs = []
     for fpath in parquet_files:
-        timestamp = datetime.strptime(fpath.name.replace("_200.parquet", ""), r"%Y%m%d-%H%M%S")
+        timestamp = datetime.strptime(
+            fpath.name.replace("_200.parquet", "").replace("_selenium.parquet", ""),
+            r"%Y%m%d-%H%M%S"
+        )
         df = pd.read_parquet(fpath)
         df['timestamp'] = timestamp
         dfs.append(df)
@@ -27,42 +42,43 @@ def get_combined_df(parquet_basedir):
     return pd.concat(dfs)
 
 
-def main():
-    parquet_basedir = "data/jyskebank_erhverv_kurser/bs_pd_parquet"
+def main(
+    parquet_basedir: Path | str = "data/jyskebank_erhverv_kurser/bs_pd_parquet", 
+    fpattern: str = "*.parquet",
+):
 
-    combined_df = get_combined_df(parquet_basedir)
+    combined_df = get_combined_df(parquet_basedir, fpattern=fpattern)
 
     print("Columns:")
     print(combined_df.columns.values)
 
-    # Remove 
+    # Remove bonds that we don't want to consider
     combined_df = combined_df[~combined_df["Løbetid/kuponrente"].str.startswith(r"30 år 1,00 %")]
     print("Løbetid/kuponrente, unikke værdier:")
     print("\n".join(sorted(combined_df["Løbetid/kuponrente"].unique())))
 
-    # Plot all columns for "30 år 5,00 % afdragsfri* 411.E.OA.56"
-    selected_df = combined_df[combined_df["Løbetid/kuponrente"].str.startswith(r"30 år 5,00 % afdragsfri* 411.E.OA.56")]
-    # print(selected_df)
-    fig, ax = pyplot.subplots(figsize=(20, 10))
-    selected_df.set_index("timestamp").plot(ax=ax)
-    # ax.legend(loc='upper left')
-    ax.legend(bbox_to_anchor=(1.25, 1.0))
-    fig.tight_layout()
-    plotfn = "5pct_411.E.OA.56.png"
-    print("Saving plot to file:", plotfn)
-    fig.savefig(plotfn)
+    # Create a shorter version of "Løbetid/kuponrente":
+    combined_df["Obligation"] = combined_df["Løbetid/kuponrente"].apply(lambda s: s.split(" - U")[0])
 
-    # Plot all columns for "30 år 5,00 % afdragsfri* 411.E.OA.56"
-    selected_df = combined_df[combined_df["Løbetid/kuponrente"].str.startswith(r"30 år 4,00 % afdragsfri* 411.E.OA.56")]
-    # print(selected_df)
-    fig, ax = pyplot.subplots(figsize=(20, 10))
-    selected_df.set_index("timestamp").plot(ax=ax)
-    # ax.legend(loc='upper left')
-    ax.legend(bbox_to_anchor=(1.25, 1.0))
-    fig.tight_layout()
-    plotfn = "4pct_411.E.OA.56.png"
-    print("Saving plot to file:", plotfn)
-    fig.savefig(plotfn)
+    plot_all_cols_for = {
+        # fn, startswith
+        "5pct_411.E.OA.56.png": "30 år 5,00 % afdragsfri* 411.E.OA.56",
+        "4pct_411.E.OA.56.png": "30 år 4,00 % afdragsfri* 411.E.OA.56",
+        "4pct_111.E.56.png": "30 år 4,00 %  111.E.56",
+    }
+
+    for plotfn, startswith in plot_all_cols_for.items():
+        # Plot all columns for "30 år 5,00 % afdragsfri* 411.E.OA.56"
+        selected_df = combined_df[combined_df["Løbetid/kuponrente"].str.startswith(startswith)]
+        # print(selected_df)
+        fig, ax = pyplot.subplots(figsize=(20, 10))
+        selected_df.set_index("timestamp").plot(ax=ax)
+        # ax.legend(loc='upper left')
+        ax.legend(bbox_to_anchor=(1.25, 1.0))
+        fig.tight_layout()
+        print("Saving plot to file:", plotfn)
+        fig.savefig(plotfn)
+
 
     # Plot all rows for a specific column ('Tilbudskurs'):
     fig, ax = pyplot.subplots(figsize=(15, 10))
