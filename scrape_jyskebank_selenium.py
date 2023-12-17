@@ -1,5 +1,7 @@
 """
 
+# Selenium-based scraper
+
 ## Installation and requirements, package dependencies:
 
 
@@ -34,10 +36,11 @@ import time
 import random
 from datetime import datetime, timedelta
 
-import cloudscraper
+# import cloudscraper
+import selenium.webdriver
 
 
-output_folder = "data/jyskebank_erhverv_kurser/scrape_raw"
+output_folder = "data/jyskebank_erhverv_kurser/scrape_selenium"
 scrape_url = "https://www.jyskebank.dk/erhverv/ejendomsfinansiering/kurser"
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
@@ -56,20 +59,20 @@ sleep_offhour_extra_max = 6*hour
 def main():
     """ """
     Path(output_folder).mkdir(exist_ok=True, parents=True)
+    driver = selenium.webdriver.Chrome()
     while True:
         try:
-            # Create new scraper session on each loop to avoid 'Connection aborted' RemoteDisconnected errors.
-            scraper = cloudscraper.create_scraper()
-            res = scraper.get(scrape_url, headers={"User-Agent": user_agent})
-            if res.status_code != 200:
-                print(f"\nSCRAPER ERROR, HTTP STATUS CODE: {res.status_code}")
-            # Update, 2023-12-15: Started to get HTTP 403 errors.
-            # 
-            txt = res.text
-            fname = f"{datetime.now():%Y%m%d-%H%M%S}_{res.status_code}.html"
+            print(f"\n{datetime.now():%Y%m%d-%H%M%S} Fetching {scrape_url}")
+            driver.get(scrape_url)
+            # OBS: Selenium webdriver does not support status codes:
+            # https://github.com/seleniumhq/selenium-google-code-issue-archive/issues/141
+            time.sleep(6)
+            txt = driver.page_source
+            fname = f"{datetime.now():%Y%m%d-%H%M%S}_selenium.html"
             fpath = Path(output_folder) / fname
-            print(f"Writing {len(txt)} chars to file: {fpath}")
-            Path(fpath).write_text(txt)
+            print(f" - Writing {len(txt)} chars to file: {fpath} ", end="")
+            Path(fpath).write_text(txt, encoding="utf8")
+            print("OK.")
 
             # time.sleep is paused during hybernation.
             # Instead, calcualte the datetime of the next acquisition, and then keep sleeping in smaller loops until then.
@@ -88,8 +91,11 @@ def main():
             break
         except Exception as exc:
             print("Exception:", exc)
-            print("Looping...")
-    
+            print("Looping in 15 seconds...")
+            time.sleep(15)
+    driver.quit()
+    time.sleep(2)
+
 
 if __name__ == "__main__":
     main()
