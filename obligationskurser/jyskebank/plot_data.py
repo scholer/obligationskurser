@@ -101,6 +101,16 @@ def main(
     # Plot all "Udbetalingskurs Fastkursaftale":
     fastkurs_cols = [col for col in combined_df.columns.values if "Udbetalingskurs Fastkursaftale" in col]
 
+    # Create difference plots:
+    aktuel_kurs_pivot_df = combined_df.pivot(columns="Obligation", index=["timestamp"], values="Aktuel kurs")
+    aktuel_kurs_pivot_diff_df = aktuel_kurs_pivot_df.subtract(aktuel_kurs_pivot_df["30 år 4,00 % afdragsfri* 411.E.OA.56"], axis="index")
+    fig, ax = pyplot.subplots(figsize=(15, 10))
+    aktuel_kurs_pivot_diff_df.plot(ax=ax)
+    ax.legend(bbox_to_anchor=(1.25, 1.0))
+    fig.tight_layout()
+    plotfn = "Aktuel_kurs_diffplot.png"
+    print("Saving plot to file:", plotfn)
+    fig.savefig(plotfn)
 
 
 if __name__ == "__main__":
